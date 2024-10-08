@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            text-align: center;
+            position: relative;
+        }
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(20, 20px);
+            grid-template-rows: repeat(20, 20px);
+            gap: 1px;
+            background-color: #ccc;
+            border: 2px solid #333;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+        }
+        #score {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        #start-button {
+            font-size: 18px;
+            margin-top: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        #instructions {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        #game-over h2 {
+            margin: 0;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-board"></div>
+        <div id="score">Score: 0</div>
+        <button id="start-button">Start Game</button>
+        <div id="instructions">Use arrow keys to move. Press any arrow key to start moving.</div>
+        <div id="game-over">
+            <h2>You lose</h2>
+        </div>
+    </div>
+
+    <script>
+        const gameBoard = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score');
+        const startButton = document.getElementById('start-button');
+        const gameOverDisplay = document.getElementById('game-over');
+
+        const GRID_SIZE = 20;
+        const SNAKE_EMOJI = '🐍';
+        const APPLE_EMOJI = '🍎';
+        const FENCE_EMOJI = '🧱';
+
+        let snake = [];
+        let direction = { x: 1, y: 0 };
+        let apple = { x: 15, y: 15 };
+        let score = 0;
+        let gameActive = false;
+
+        function createBoard() {
+            gameBoard.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    if (x === 0 || x === GRID_SIZE - 1 || y === 0 || y === GRID_SIZE - 1) {
+                        cell.textContent = FENCE_EMOJI;
+                    }
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+
+        function updateGame() {
+            const newHead = {
+                x: snake[0].x + direction.x,
+                y: snake[0].y + direction.y
+            };
+
+            if (isCollision(newHead)) {
+                endGame();
+                return;
+            }
+
+            snake.unshift(newHead);
+
+            if (newHead.x === apple.x && newHead.y === apple.y) {
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+                placeApple();
+            } else {
+                snake.pop();
+            }
+
+            drawGame();
+        }
+
+        function drawGame() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                if (cell.textContent !== FENCE_EMOJI) {
+                    cell.textContent = '';
+                }
+            });
+
+            snake.forEach((segment, index) => {
+                const cell = cells[segment.y * GRID_SIZE + segment.x];
+                cell.textContent = index === 0 ? SNAKE_EMOJI : '🟢';
+            });
+
+            const appleCell = cells[apple.y * GRID_SIZE + apple.x];
+            appleCell.textContent = APPLE_EMOJI;
+        }
+
+        function isCollision(position) {
+            return position.x < 1 || position.x >= GRID_SIZE - 1 ||
+                   position.y < 1 || position.y >= GRID_SIZE - 1 ||
+                   snake.slice(1).some(segment => segment.x === position.x && segment.y === position.y);
+        }
+
+        function placeApple() {
+            do {
+                apple = {
+                    x: Math.floor(Math.random() * (GRID_SIZE - 2)) + 1,
+                    y: Math.floor(Math.random() * (GRID_SIZE - 2)) + 1
+                };
+            } while (snake.some(segment => segment.x === apple.x && segment.y === apple.y));
+        }
+
+        function endGame() {
+            gameActive = false;
+            gameOverDisplay.style.display = 'block';
+            startButton.style.display = 'block';
+        }
+
+        function startGame() {
+            snake = [{ x: 10, y: 10 }];
+            direction = { x: 1, y: 0 };
+            score = 0;
+            scoreDisplay.textContent = 'Score: 0';
+            placeApple();
+            drawGame();
+            gameActive = true;
+            startButton.style.display = 'none';
+            gameOverDisplay.style.display = 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (direction.y === 0) direction = { x: 0, y: -1 };
+                    break;
+                case 'ArrowDown':
+                    if (direction.y === 0) direction = { x: 0, y: 1 };
+                    break;
+                case 'ArrowLeft':
+                    if (direction.x === 0) direction = { x: -1, y: 0 };
+                    break;
+                case 'ArrowRight':
+                    if (direction.x === 0) direction = { x: 1, y: 0 };
+                    break;
+            }
+            updateGame();
+        });
+
+        startButton.addEventListener('click', startGame);
+
+        createBoard();
+    </script>
+</body>
+</html>
